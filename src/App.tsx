@@ -1,13 +1,86 @@
-import React from 'react';
+import { useEffect, useState } from "react";
+import { fetchTiendas, crearTienda } from "./api";
+import TiendaPanel from "./components/TiendaPanel";
 
 function App() {
+  const [tiendas, setTiendas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [nombre, setNombre] = useState("");
+  const [rubro, setRubro] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [tiendaSeleccionada, setTiendaSeleccionada] = useState<number | null>(null);
+
+  const cargarTiendas = () => {
+    setLoading(true);
+    fetchTiendas()
+      .then(setTiendas)
+      .catch(() => setTiendas([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargarTiendas();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMensaje("");
+    try {
+      await crearTienda(nombre, rubro);
+      setNombre("");
+      setRubro("");
+      setMensaje("¡Tienda creada!");
+      cargarTiendas();
+    } catch {
+      setMensaje("Error al crear tienda");
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-orange-50">
-      <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full text-center">
-        <h1 className="text-3xl font-bold text-green-600 mb-4">Stock Multitienda</h1>
-        <p className="text-gray-700 mb-2">¡Bienvenido! Esta es la base de tu nueva app para gestionar productos, ventas, clientes y reportes en múltiples tiendas.</p>
-        <p className="text-gray-500 text-sm">Próximamente: autenticación, gestión multi-tienda, y mucho más.</p>
-      </div>
+    <div className="p-6">
+      <h1>Stock Multitienda</h1>
+
+      <form onSubmit={handleSubmit} className="mb-4">
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Nombre de la tienda"
+          required
+        />
+        <input
+          value={rubro}
+          onChange={(e) => setRubro(e.target.value)}
+          placeholder="Rubro"
+          required
+        />
+        <button type="submit">Crear tienda</button>
+      </form>
+
+      {mensaje && <p>{mensaje}</p>}
+
+      <h2>Tiendas registradas</h2>
+      {loading ? (
+        <p>Cargando tiendas...</p>
+      ) : (
+        <ul>
+          {tiendas.map((t) => (
+            <li key={t.id}>
+              <button onClick={() => setTiendaSeleccionada(t.id)}>
+                {t.nombre} {t.rubro && <span>({t.rubro})</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <hr style={{ margin: "2em 0" }} />
+
+      {tiendaSeleccionada && (
+        <TiendaPanel
+          nombre={tiendas.find(t => t.id === tiendaSeleccionada)?.nombre || ""}
+          subtitulo="Gestión de inventario para mascotas y forrajería"
+        />
+      )}
     </div>
   );
 }
